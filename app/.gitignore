@@ -1,0 +1,9 @@
+/build
+google-services.json
+/src/**/ads_ids.xml
+/**/Example*Test.kt
+/src/main/res/values/key.xml
+/**/*.svg
+/**/*.png
+/src/main/res/drawable*/*.xml
+/src/main/res/mipmap*/*.xml
