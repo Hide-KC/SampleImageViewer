@@ -33,16 +33,17 @@ class ImageListAdapter(
     )
 
   override fun onBindViewHolder(holder: ContentViewHolder, position: Int) {
-    (holder.binding as SquareImageBinding).also {
+    (holder.binding as SquareImageBinding).also { binding ->
+      binding.lifecycleOwner = parentLifecycleOwner
+
       viewModel.getItem(position)?.let { item ->
-        it.lifecycleOwner = parentLifecycleOwner
-        it.squareImageView.setImageDrawable(ContextCompat.getDrawable(context, item))
-        it.root.setOnClickListener {
-          viewModel.onShowDetail(position)
-        }
+        binding.squareImageView.setImageDrawable(ContextCompat.getDrawable(context, item))
+      }
+
+      binding.root.setOnClickListener {
+        viewModel.onShowDetail(position)
       }
     }
-
     holder.binding.executePendingBindings()
   }
 

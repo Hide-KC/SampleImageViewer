@@ -2,8 +2,6 @@ package work.kcs_labo.sample_image_viewer
 
 import android.os.Bundle
 import android.view.*
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.addCallback
 import androidx.core.content.res.ResourcesCompat
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
@@ -46,13 +44,7 @@ class DetailImageFragment : Fragment() {
 
   private var _translationY = 0F
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    requireActivity().onBackPressedDispatcher.addCallback {
-      //TODO SingleLiveEventにしないと画面回転で不正に発報する
-      viewModel.onBackPressed()
-    }
-  }
+  private var _enableTurnPage: TurnPage = TurnPage.NONE
 
   override fun onCreateView(
     inflater: LayoutInflater,
@@ -60,20 +52,41 @@ class DetailImageFragment : Fragment() {
     savedInstanceState: Bundle?
   ): View {
 
-    binding = DataBindingUtil.inflate<DetailImageFragmentBinding>(inflater, R.layout.detail_image_fragment, container, false)
+    binding = DataBindingUtil.inflate(
+      inflater,
+      R.layout.detail_image_fragment,
+      container,
+      false
+    )
 
     val position = arguments?.getInt("position") ?: 0
     viewModel.getItem(position)?.let {
       binding.imageView.setImageDrawable(ResourcesCompat.getDrawable(resources, it, null))
     }
 
+    initValues()
+
     viewModel.motionEventLiveData.observe(viewLifecycleOwner) {
       onTouch(it)
     }
 
-    initValues()
-
     return binding.root
+  }
+
+  fun resetScale() {
+    _scaleFactor = 1F
+
+    // onScaleが発生したときと同じ流れ
+    binding.imageView.scaleX = _scaleFactor
+    binding.imageView.scaleY = _scaleFactor
+
+    _drawableWidth = _defaultDrawableWidth * _scaleFactor
+    _drawableHeight = _defaultDrawableHeight * _scaleFactor
+
+    _viewPortWidth = min(_drawableWidth, binding.root.width.toFloat())
+    _viewPortHeight = min(_drawableHeight, binding.root.height.toFloat())
+
+    adjustTranslation(_translationX, _translationY, 0F)
   }
 
   private fun onTouch(event: MotionEvent?) {
@@ -85,62 +98,56 @@ class DetailImageFragment : Fragment() {
     _scaleGestureDetector = ScaleGestureDetector(requireContext(), ScaleListener())
     _gestureDetector = GestureDetector(requireContext(), PanListener())
 
-    val viewTreeObserver = binding.imageView.viewTreeObserver
-    if (viewTreeObserver.isAlive) {
-      viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-        override fun onGlobalLayout() {
-          binding.imageView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+    binding.root.post {
 
-          // Drawable自体のアスペクト比（高さ/幅）
-          val drawableAspectRatio =
-            binding.imageView.drawable.intrinsicHeight.toFloat() / binding.imageView.drawable.intrinsicWidth.toFloat()
+      // Drawable自体のアスペクト比（高さ/幅）
+      val drawableAspectRatio =
+        binding.imageView.drawable.intrinsicHeight.toFloat() / binding.imageView.drawable.intrinsicWidth.toFloat()
 
-          // ImageViewのアスペクト比（高さ/幅）
-          val imageViewAspectRatio =
-            binding.imageView.height.toFloat() / binding.imageView.width.toFloat()
+      // ImageViewのアスペクト比（高さ/幅）
+      val imageViewAspectRatio =
+        binding.imageView.height.toFloat() / binding.imageView.width.toFloat()
 
-          // DrawableがImageViewと比較して縦長（高アスペクト比）か横長（低アスペクト比）かを判断
-          // defaultDrawableX: 画面ピッタリに収めたときのサイズ
-          _defaultDrawableWidth = if (drawableAspectRatio < imageViewAspectRatio) {
-            // 横長なDrawable
-            // 単純にImageViewWidthに一致させる
-            binding.imageView.width.toFloat()
-          } else {
-            // 縦長なDrawable
-            // ImageViewの高さ×（Drawableの幅 / Drawableの高さ）= ImageViewHeight / DrawableHeight * DrawableWidth
-            // すなわち、Drawableの幅をImageViewの幅に一致させるように計算している
-            binding.imageView.height.toFloat() / drawableAspectRatio
-          }
+      // DrawableがImageViewと比較して縦長（高アスペクト比）か横長（低アスペクト比）かを判断
+      // defaultDrawableX: 画面ピッタリに収めたときのサイズ
+      _defaultDrawableWidth = if (drawableAspectRatio < imageViewAspectRatio) {
+        // 横長なDrawable
+        // 単純にImageViewWidthに一致させる
+        binding.imageView.width.toFloat()
+      } else {
+        // 縦長なDrawable
+        // ImageViewの高さ×（Drawableの幅 / Drawableの高さ）= ImageViewHeight / DrawableHeight * DrawableWidth
+        // すなわち、Drawableの幅をImageViewの幅に一致させるように計算している
+        binding.imageView.height.toFloat() / drawableAspectRatio
+      }
 
-          _defaultDrawableHeight = if (drawableAspectRatio < imageViewAspectRatio) {
-            // 横長なDrawable
-            // ImageViewWidth / DrawableWidth * DrawableHeight
-            // すなわち、Drawableの高さをImageViewの高さに一致させるように計算している
-            binding.imageView.width.toFloat() * drawableAspectRatio
-          } else {
-            // 縦長なDrawable
-            // 単純にImageViewHeightに一致させる
-            binding.imageView.height.toFloat()
-          }
+      _defaultDrawableHeight = if (drawableAspectRatio < imageViewAspectRatio) {
+        // 横長なDrawable
+        // ImageViewWidth / DrawableWidth * DrawableHeight
+        // すなわち、Drawableの高さをImageViewの高さに一致させるように計算している
+        binding.imageView.width.toFloat() * drawableAspectRatio
+      } else {
+        // 縦長なDrawable
+        // 単純にImageViewHeightに一致させる
+        binding.imageView.height.toFloat()
+      }
 
-          // デフォルト値を代入しておく
-          _drawableHeight = _defaultDrawableHeight
-          _drawableWidth = _defaultDrawableWidth
+      // デフォルト値を代入しておく
+      _drawableHeight = _defaultDrawableHeight
+      _drawableWidth = _defaultDrawableWidth
 
-          // ビューポートのサイズはレイアウト後のImageViewのサイズ
-          _viewPortHeight = binding.imageView.height.toFloat()
-          _viewPortWidth = binding.imageView.width.toFloat()
+      // ビューポートのサイズはレイアウト後のImageViewのサイズ
+      _viewPortHeight = binding.imageView.height.toFloat()
+      _viewPortWidth = binding.imageView.width.toFloat()
 
-          // レイアウト時に、
-          // ・Drawableのデフォルトサイズ（縦横比を保ったままピッタリ収めたときのサイズ）
-          // ・ViewPortのサイズ（＝ImageView サイズ）
-          // ３点をメモしておく。
-        }
-      })
+      // レイアウト時に、
+      // ・Drawableのデフォルトサイズ（縦横比を保ったままピッタリ収めたときのサイズ）
+      // ・ViewPortのサイズ（＝ImageView サイズ）
+      // ３点をメモしておく。
     }
   }
 
-  private fun adjustTranslation(translationX: Float, translationY: Float) {
+  private fun adjustTranslation(translationX: Float, translationY: Float, distanceX: Float) {
     // 可動範囲を算出
     // Drawableサイズ - ViewPortサイズ / 2 の絶対値
     // 内側でも外側にはみ出ていても、余白がどれだけあるか算出できる
@@ -173,7 +180,20 @@ class DetailImageFragment : Fragment() {
       min(translationY, translationYMargin)
     }
 
-    // ImageViewを移動させる（？）
+    //TODO ここでViewPagerのページ送りの可否を判定したい
+    // 逆方向のときの一発目だけimageView.translationXが前回の値になっていてfalseが出る？
+    // 指を離したときに可否を変えるべきでは？（パン操作中にページめくり可能としない）
+//    viewModel.setEnableTurnPage(binding.imageView.translationX == _translationX)
+
+//    println("imageView.translationX=${binding.imageView.translationX}, _translationX=$_translationX, true?=${binding.imageView.translationX == _translationX}")
+
+    _enableTurnPage = when {
+      distanceX < 0 && binding.imageView.translationX == _translationX -> TurnPage.TO_PREVIOUS
+      distanceX > 0 && binding.imageView.translationX == _translationX -> TurnPage.TO_NEXT
+      else -> TurnPage.NONE
+    }
+
+    // ImageViewを移動させる
     binding.imageView.translationX = _translationX
     binding.imageView.translationY = _translationY
   }
@@ -195,8 +215,7 @@ class DetailImageFragment : Fragment() {
         _viewPortHeight = min(_drawableHeight, binding.root.height.toFloat())
       } ?: println("scaleFactor is null")
 
-
-      adjustTranslation(_translationX, _translationY)
+      adjustTranslation(_translationX, _translationY, 0F)
 
       return true
     }
@@ -210,12 +229,33 @@ class DetailImageFragment : Fragment() {
       distanceY: Float
     ): Boolean {
       // 現在のXY座標（adjustTranslation内で更新）からdistance分だけ移動した値をメモ
-      println("distanceX: $distanceX, distanceY: $distanceY")
+//      println("distanceX: $distanceX, distanceY: $distanceY")
+      // 右にスワイプ：distanceX < 0
+      // 左にスワイプ：distanceX > 0
       val translationX = _translationX - distanceX
       val translationY = _translationY - distanceY
 
       // 移動自体はこちらのメソッド内で実行
-      adjustTranslation(translationX, translationY)
+      adjustTranslation(translationX, translationY, distanceX)
+
+      return true
+    }
+
+    override fun onFling(
+      e1: MotionEvent?,
+      e2: MotionEvent?,
+      velocityX: Float,
+      velocityY: Float
+    ): Boolean {
+
+      println(velocityX)
+      when {
+        _enableTurnPage == TurnPage.TO_PREVIOUS && velocityX > 2000 -> viewModel.onFling(TurnPage.TO_PREVIOUS)
+        _enableTurnPage == TurnPage.TO_NEXT && velocityX < -2000 -> viewModel.onFling(TurnPage.TO_NEXT)
+        else -> viewModel.onFling(TurnPage.NONE)
+      }
+
+      _enableTurnPage = TurnPage.NONE
 
       return true
     }

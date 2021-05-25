@@ -9,24 +9,26 @@ class MainActivityViewModel : ViewModel() {
 
   private val _itemIdListLiveData = MutableLiveData(
     listOf(
-      R.drawable.calligraphy,
-      R.drawable.sample_icon,
-      R.drawable.sample_ookii,
-      R.drawable.sample_screenshot,
-      R.drawable.sample_tatenaga,
-      R.drawable.sample_yokonaga,
-      R.drawable.calligraphy,
-      R.drawable.sample_icon,
-      R.drawable.sample_ookii,
-      R.drawable.sample_screenshot,
-      R.drawable.sample_tatenaga,
-      R.drawable.sample_yokonaga,
-      R.drawable.calligraphy,
-      R.drawable.sample_icon,
-      R.drawable.sample_ookii,
-      R.drawable.sample_screenshot,
-      R.drawable.sample_tatenaga,
-      R.drawable.sample_yokonaga
+      R.drawable.sample_1,
+      R.drawable.sample_2,
+      R.drawable.sample_3,
+      R.drawable.sample_4,
+      R.drawable.sample_5,
+      R.drawable.sample_6,
+      R.drawable.sample_7,
+      R.drawable.sample_8,
+      R.drawable.sample_9,
+      R.drawable.sample_10,
+      R.drawable.sample_11,
+      R.drawable.sample_12,
+      R.drawable.sample_13,
+      R.drawable.sample_14,
+      R.drawable.sample_15,
+      R.drawable.sample_16,
+      R.drawable.sample_17,
+      R.drawable.sample_18,
+      R.drawable.sample_19,
+      R.drawable.sample_20
     )
   )
   val itemIdListLiveData: LiveData<List<Int>> = _itemIdListLiveData
@@ -39,6 +41,9 @@ class MainActivityViewModel : ViewModel() {
 
   private val _onShowDetailLiveData = MutableLiveData<Int>()
   val onShowDetailLiveData: LiveData<Int> = _onShowDetailLiveData
+
+  private val _onFlingLiveData = MutableLiveData(TurnPage.NONE)
+  val onFlingLiveData: LiveData<TurnPage> = _onFlingLiveData
 
   fun getCount() = itemIdListLiveData.value?.size ?: 0
 
@@ -56,5 +61,9 @@ class MainActivityViewModel : ViewModel() {
     motionEvent?.let {
       _motionEventLiveData.value = it
     }
+  }
+
+  fun onFling(turnPage: TurnPage) {
+    _onFlingLiveData.value = turnPage
   }
 }

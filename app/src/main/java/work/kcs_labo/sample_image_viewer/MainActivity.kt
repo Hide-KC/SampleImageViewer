@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
         val transaction1 = supportFragmentManager.beginTransaction()
         transaction1.replace(R.id.contents, imageListFragment)
         transaction1.commit()
+        viewModel.onFling(TurnPage.NONE)
 
         binding.root.transitionToStart()
       } else {
@@ -48,11 +49,11 @@ class MainActivity : AppCompatActivity() {
     viewModel.onShowDetailLiveData.observe(this) { position ->
       println("onShowDetail")
 
-      val detailFragment =
-        DetailImageFragment.getInstance(Bundle().also { b -> b.putInt("position", position) })
-      if (!detailFragment.isVisible) {
+      val detailImageViewPagerFragment =
+        DetailImageViewPagerFragment.getInstance(Bundle().also { b -> b.putInt("position", position) })
+      if (!detailImageViewPagerFragment.isVisible) {
         val transaction2 = supportFragmentManager.beginTransaction()
-        transaction2.replace(R.id.contents, detailFragment)
+        transaction2.replace(R.id.contents, detailImageViewPagerFragment)
         transaction2.commit()
 
         binding.root.transitionToEnd()
@@ -62,6 +63,6 @@ class MainActivity : AppCompatActivity() {
 
   override fun onTouchEvent(event: MotionEvent?): Boolean {
     viewModel.updateMotion(event)
-    return super.onTouchEvent(event)
+    return true
   }
 }
