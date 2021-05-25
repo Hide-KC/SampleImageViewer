@@ -14,6 +14,11 @@ class MainActivity : AppCompatActivity() {
     ViewModelProvider.NewInstanceFactory()
   }
 
+  override fun onStop() {
+    super.onStop()
+    viewModel.detailImageVisible = detailImageFragmentVisibility()
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -24,19 +29,37 @@ class MainActivity : AppCompatActivity() {
 
     val transaction = supportFragmentManager.beginTransaction()
 
-    transaction.replace(R.id.contents, ImageListFragment.getInstance(), "TAG_LIST")
+    if (viewModel.detailImageVisible) {
+      val target = supportFragmentManager.findFragmentByTag("TAG_DETAIL")
+        ?: DetailImageViewPagerFragment.getInstance(Bundle().also { b ->
+          b.putInt(
+            "position",
+            viewModel.getCurrentItem()
+          )
+        })
+
+      transaction.replace(R.id.contents, target, "TAG_DETAIL")
+
+    } else {
+      val target = supportFragmentManager.findFragmentByTag("TAG_LIST")
+        ?: ImageListFragment.getInstance()
+
+      transaction.replace(R.id.contents, target, "TAG_LIST")
+
+    }
 
     transaction.commit()
 
-    viewModel.onBackPressedLiveData.observe(this) {
+    viewModel.onBackPressedLiveEvent.observeSingle(this) {
       println("onBackPressed")
 
       val imageListFragment =
-        supportFragmentManager.findFragmentByTag("TAG_LIST") ?: ImageListFragment.getInstance()
+        supportFragmentManager.findFragmentByTag("TAG_LIST")
+          ?: ImageListFragment.getInstance()
 
       if (!imageListFragment.isVisible) {
         val transaction1 = supportFragmentManager.beginTransaction()
-        transaction1.replace(R.id.contents, imageListFragment)
+        transaction1.replace(R.id.contents, imageListFragment, "TAG_LIST")
         transaction1.commit()
         viewModel.onFling(TurnPage.NONE)
 
@@ -46,14 +69,17 @@ class MainActivity : AppCompatActivity() {
       }
     }
 
-    viewModel.onShowDetailLiveData.observe(this) { position ->
+    viewModel.onShowDetailLiveEvent.observeSingle(this) { position ->
       println("onShowDetail")
 
       val detailImageViewPagerFragment =
-        DetailImageViewPagerFragment.getInstance(Bundle().also { b -> b.putInt("position", position) })
+        supportFragmentManager.findFragmentByTag("TAG_DETAIL")
+          ?: DetailImageViewPagerFragment
+            .getInstance(Bundle().also { b -> b.putInt("position", position ?: 0) })
+
       if (!detailImageViewPagerFragment.isVisible) {
         val transaction2 = supportFragmentManager.beginTransaction()
-        transaction2.replace(R.id.contents, detailImageViewPagerFragment)
+        transaction2.replace(R.id.contents, detailImageViewPagerFragment, "TAG_DETAIL")
         transaction2.commit()
 
         binding.root.transitionToEnd()
@@ -65,4 +91,8 @@ class MainActivity : AppCompatActivity() {
     viewModel.updateMotion(event)
     return true
   }
+
+  private fun detailImageFragmentVisibility() =
+    supportFragmentManager.findFragmentByTag("TAG_DETAIL")?.isVisible ?: false
+
 }

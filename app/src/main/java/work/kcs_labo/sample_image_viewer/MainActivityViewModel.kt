@@ -17,53 +17,46 @@ class MainActivityViewModel : ViewModel() {
       R.drawable.sample_6,
       R.drawable.sample_7,
       R.drawable.sample_8,
-      R.drawable.sample_9,
-      R.drawable.sample_10,
-      R.drawable.sample_11,
-      R.drawable.sample_12,
-      R.drawable.sample_13,
-      R.drawable.sample_14,
-      R.drawable.sample_15,
-      R.drawable.sample_16,
-      R.drawable.sample_17,
-      R.drawable.sample_18,
-      R.drawable.sample_19,
-      R.drawable.sample_20
+      R.drawable.sample_9
     )
   )
   val itemIdListLiveData: LiveData<List<Int>> = _itemIdListLiveData
 
-  private val _onBackPressedLiveData = MutableLiveData(Unit)
-  val onBackPressedLiveData: LiveData<Unit> = _onBackPressedLiveData
+  private val _onBackPressedLiveEvent = singleLiveEvent<Unit>()
+  val onBackPressedLiveEvent: LiveData<Unit> = _onBackPressedLiveEvent
 
-  private val _motionEventLiveData = MutableLiveData<MotionEvent>()
-  val motionEventLiveData: LiveData<MotionEvent> = _motionEventLiveData
+  private val _onMotionEventLiveEvent = singleLiveEvent<MotionEvent>()
+  val onMotionEventLiveEvent: LiveData<MotionEvent> = _onMotionEventLiveEvent
 
-  private val _onShowDetailLiveData = MutableLiveData<Int>()
-  val onShowDetailLiveData: LiveData<Int> = _onShowDetailLiveData
+  private val _onShowDetailLiveEvent = singleLiveEvent<Int>()
+  val onShowDetailLiveEvent: LiveData<Int> = _onShowDetailLiveEvent
 
-  private val _onFlingLiveData = MutableLiveData(TurnPage.NONE)
-  val onFlingLiveData: LiveData<TurnPage> = _onFlingLiveData
+  private val _onFlingLiveEvent = singleLiveEvent<TurnPage>()
+  val onFlingLiveEvent: LiveData<TurnPage> = _onFlingLiveEvent
+
+  var detailImageVisible = false
 
   fun getCount() = itemIdListLiveData.value?.size ?: 0
 
   fun getItem(position: Int) = itemIdListLiveData.value?.get(position)
 
+  fun getCurrentItem() = _onShowDetailLiveEvent.value ?: 0
+
   fun onBackPressed() {
-    _onBackPressedLiveData.value = Unit
+    _onBackPressedLiveEvent.value = Unit
   }
 
   fun onShowDetail(position: Int) {
-    _onShowDetailLiveData.value = position
+    _onShowDetailLiveEvent.value = position
   }
 
   fun updateMotion(motionEvent: MotionEvent?) {
     motionEvent?.let {
-      _motionEventLiveData.value = it
+      _onMotionEventLiveEvent.value = it
     }
   }
 
   fun onFling(turnPage: TurnPage) {
-    _onFlingLiveData.value = turnPage
+    _onFlingLiveEvent.value = turnPage
   }
 }

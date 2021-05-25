@@ -21,12 +21,18 @@ class DetailImageViewPagerFragment : Fragment() {
 
   private val viewModel: MainActivityViewModel by activityViewModels()
 
+  private lateinit var binding: DetailImageViewPagerFragmentBinding
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     requireActivity().onBackPressedDispatcher.addCallback {
-      //TODO SingleLiveEventにしないと画面回転で不正に発報する
       viewModel.onBackPressed()
     }
+  }
+
+  override fun onSaveInstanceState(outState: Bundle) {
+    super.onSaveInstanceState(outState)
+    outState.putInt("position", binding.viewPager.currentItem)
   }
 
   override fun onCreateView(
@@ -34,27 +40,41 @@ class DetailImageViewPagerFragment : Fragment() {
     container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    val binding = DetailImageViewPagerFragmentBinding.inflate(inflater, container, false)
+    binding = DetailImageViewPagerFragmentBinding.inflate(inflater, container, false)
 
     binding.viewPager.adapter = DetailImageAdapter(requireActivity(), viewModel)
 
     binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
       override fun onPageSelected(position: Int) {
         super.onPageSelected(position)
+        val savedPosition = savedInstanceState?.getInt("position") ?: -1
         binding.viewPager.adapter?.let { adapter ->
-          requireActivity().supportFragmentManager.findFragmentByTag("f${adapter.getItemId(position)}")?.let { fragment ->
-              if (fragment is DetailImageFragment) {
-                fragment.resetScale()
-              }
+          if (savedPosition != -1) {
+            requireActivity().supportFragmentManager.findFragmentByTag("f$savedPosition")
+          } else {
+            requireActivity().supportFragmentManager
+              .findFragmentByTag("f${adapter.getItemId(position)}")
+          }?.let { fragment ->
+            if (fragment is DetailImageFragment) {
+              fragment.resetScale()
             }
+          }
         }
       }
     })
 
-    val position = arguments?.getInt("position") ?: 0
-    binding.viewPager.setCurrentItem(position, false)
+    val savedPosition = savedInstanceState?.getInt("position") ?: -1
 
-    viewModel.onFlingLiveData.observe(viewLifecycleOwner)
+    if (savedPosition == -1) {
+      val initPosition = arguments?.getInt("position") ?: 0
+      binding.viewPager.setCurrentItem(initPosition, false)
+    } else {
+      binding.viewPager.post {
+        binding.viewPager.currentItem = savedPosition
+      }
+    }
+
+    viewModel.onFlingLiveEvent.observeSingle(viewLifecycleOwner)
     {
       val current = binding.viewPager.currentItem
       when (it) {

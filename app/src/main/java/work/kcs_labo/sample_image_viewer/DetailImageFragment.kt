@@ -52,6 +52,8 @@ class DetailImageFragment : Fragment() {
     savedInstanceState: Bundle?
   ): View {
 
+    println("onCreateView")
+
     binding = DataBindingUtil.inflate(
       inflater,
       R.layout.detail_image_fragment,
@@ -66,7 +68,7 @@ class DetailImageFragment : Fragment() {
 
     initValues()
 
-    viewModel.motionEventLiveData.observe(viewLifecycleOwner) {
+    viewModel.onMotionEventLiveEvent.observeSingle(viewLifecycleOwner) {
       onTouch(it)
     }
 
