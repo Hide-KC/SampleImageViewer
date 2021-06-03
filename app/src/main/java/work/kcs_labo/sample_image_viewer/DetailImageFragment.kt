@@ -1,11 +1,16 @@
 package work.kcs_labo.sample_image_viewer
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.*
+import androidx.constraintlayout.motion.widget.MotionLayout
 import androidx.core.content.res.ResourcesCompat
-import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import by.kirich1409.viewbindingdelegate.viewBinding
+import kotlinx.coroutines.*
 import work.kcs_labo.sample_image_viewer.databinding.DetailImageFragmentBinding
 import kotlin.math.abs
 import kotlin.math.max
@@ -16,7 +21,7 @@ import kotlin.math.min
  * ProjectName SampleImageViewer
  */
 
-class DetailImageFragment : Fragment() {
+class DetailImageFragment : Fragment(R.layout.detail_image_fragment), OnInitFieldListener {
 
   private val viewModel: MainActivityViewModel by activityViewModels()
 
@@ -24,7 +29,7 @@ class DetailImageFragment : Fragment() {
 
   private lateinit var _gestureDetector: GestureDetector
 
-  private lateinit var binding: DetailImageFragmentBinding
+  private val binding by viewBinding(DetailImageFragmentBinding::bind)
 
   // onScaleにより変化
   private var _drawableWidth = 0F
@@ -46,47 +51,34 @@ class DetailImageFragment : Fragment() {
 
   private var _enableTurnPage: TurnPage = TurnPage.NONE
 
-  override fun onCreateView(
-    inflater: LayoutInflater,
-    container: ViewGroup?,
-    savedInstanceState: Bundle?
-  ): View {
-
-    println("onCreateView")
-
-    binding = DataBindingUtil.inflate(
-      inflater,
-      R.layout.detail_image_fragment,
-      container,
-      false
-    )
-
+  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
     val position = arguments?.getInt("position") ?: 0
     viewModel.getItem(position)?.let {
       binding.imageView.setImageDrawable(ResourcesCompat.getDrawable(resources, it, null))
     }
 
+    println("onViewCreated: position = $position")
+
     initValues()
 
     viewModel.onMotionEventLiveEvent.observeSingle(viewLifecycleOwner) {
+      if (position != viewModel.getCurrentItem()) return@observeSingle
       onTouch(it)
     }
-
-    return binding.root
   }
 
-  fun resetScale() {
+  override fun onInitField() {
     _scaleFactor = 1F
 
-    // onScaleが発生したときと同じ流れ
     binding.imageView.scaleX = _scaleFactor
     binding.imageView.scaleY = _scaleFactor
 
-    _drawableWidth = _defaultDrawableWidth * _scaleFactor
-    _drawableHeight = _defaultDrawableHeight * _scaleFactor
+    _drawableWidth = _defaultDrawableWidth
+    _drawableHeight = _defaultDrawableHeight
 
-    _viewPortWidth = min(_drawableWidth, binding.root.width.toFloat())
-    _viewPortHeight = min(_drawableHeight, binding.root.height.toFloat())
+    _viewPortHeight = binding.imageView.height.toFloat()
+    _viewPortWidth = binding.imageView.width.toFloat()
 
     adjustTranslation(_translationX, _translationY, 0F)
   }
@@ -100,8 +92,7 @@ class DetailImageFragment : Fragment() {
     _scaleGestureDetector = ScaleGestureDetector(requireContext(), ScaleListener())
     _gestureDetector = GestureDetector(requireContext(), PanListener())
 
-    binding.root.post {
-
+    binding.imageView.post {
       // Drawable自体のアスペクト比（高さ/幅）
       val drawableAspectRatio =
         binding.imageView.drawable.intrinsicHeight.toFloat() / binding.imageView.drawable.intrinsicWidth.toFloat()
@@ -212,7 +203,7 @@ class DetailImageFragment : Fragment() {
         // Drawableのサイズをn倍して疑似的に変更（計算用）
         _drawableWidth = _defaultDrawableWidth * _scaleFactor
         _drawableHeight = _defaultDrawableHeight * _scaleFactor
-        // ViewPortサイズもここで可変にする？表示領域とdrawableサイズのいずれか小さい方で？
+        // ViewPortサイズもここで可変にする
         _viewPortWidth = min(_drawableWidth, binding.root.width.toFloat())
         _viewPortHeight = min(_drawableHeight, binding.root.height.toFloat())
       } ?: println("scaleFactor is null")
@@ -231,7 +222,6 @@ class DetailImageFragment : Fragment() {
       distanceY: Float
     ): Boolean {
       // 現在のXY座標（adjustTranslation内で更新）からdistance分だけ移動した値をメモ
-//      println("distanceX: $distanceX, distanceY: $distanceY")
       // 右にスワイプ：distanceX < 0
       // 左にスワイプ：distanceX > 0
       val translationX = _translationX - distanceX
@@ -251,9 +241,17 @@ class DetailImageFragment : Fragment() {
     ): Boolean {
 
       println(velocityX)
+
+      val root = binding.root as MotionLayout
       when {
-        _enableTurnPage == TurnPage.TO_PREVIOUS && velocityX > 2000 -> viewModel.onFling(TurnPage.TO_PREVIOUS)
-        _enableTurnPage == TurnPage.TO_NEXT && velocityX < -2000 -> viewModel.onFling(TurnPage.TO_NEXT)
+        _enableTurnPage == TurnPage.TO_PREVIOUS && velocityX > 2000 -> {
+          root.transitionToStart()
+          viewModel.onFling(TurnPage.TO_PREVIOUS)
+        }
+        _enableTurnPage == TurnPage.TO_NEXT && velocityX < -2000 -> {
+          root.transitionToStart()
+          viewModel.onFling(TurnPage.TO_NEXT)
+        }
         else -> viewModel.onFling(TurnPage.NONE)
       }
 
@@ -261,8 +259,30 @@ class DetailImageFragment : Fragment() {
 
       return true
     }
-  }
 
+    override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
+      println("onSingleTapConfirmed: position = ${viewModel.getCurrentItem()}")
+
+      val root = binding.root as MotionLayout
+      when (root.currentState) {
+        R.id.detail_start -> {
+          root.transitionToEnd()
+          Handler(Looper.getMainLooper())
+            .postDelayed(Runnable {
+              root.transitionToStart()
+            }, 2000)
+        }
+        R.id.detail_end -> {
+          root.transitionToStart()
+        }
+      }
+      return true
+    }
+
+    override fun onDoubleTap(e: MotionEvent?): Boolean {
+      return true
+    }
+  }
 
   companion object {
     fun getInstance(bundle: Bundle? = null): DetailImageFragment {

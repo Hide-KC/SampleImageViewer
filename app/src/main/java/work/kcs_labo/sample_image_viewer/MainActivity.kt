@@ -14,11 +14,6 @@ class MainActivity : AppCompatActivity() {
     ViewModelProvider.NewInstanceFactory()
   }
 
-  override fun onStop() {
-    super.onStop()
-    viewModel.detailImageVisible = detailImageFragmentVisibility()
-  }
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -29,16 +24,11 @@ class MainActivity : AppCompatActivity() {
 
     val transaction = supportFragmentManager.beginTransaction()
 
-    if (viewModel.detailImageVisible) {
-      val target = supportFragmentManager.findFragmentByTag("TAG_DETAIL")
-        ?: DetailImageViewPagerFragment.getInstance(Bundle().also { b ->
-          b.putInt(
-            "position",
-            viewModel.getCurrentItem()
-          )
-        })
+    if (detailImageFragmentVisibility()) {
+      val target = supportFragmentManager.findFragmentByTag("TAG_VIEWPAGER")
+        ?: DetailImageViewPagerFragment.getInstance()
 
-      transaction.replace(R.id.contents, target, "TAG_DETAIL")
+      transaction.replace(R.id.contents, target, "TAG_VIEWPAGER")
 
     } else {
       val target = supportFragmentManager.findFragmentByTag("TAG_LIST")
@@ -73,16 +63,19 @@ class MainActivity : AppCompatActivity() {
       println("onShowDetail")
 
       val detailImageViewPagerFragment =
-        supportFragmentManager.findFragmentByTag("TAG_DETAIL")
-          ?: DetailImageViewPagerFragment
-            .getInstance(Bundle().also { b -> b.putInt("position", position ?: 0) })
+        supportFragmentManager.findFragmentByTag("TAG_VIEWPAGER")
+          ?: DetailImageViewPagerFragment.getInstance()
 
       if (!detailImageViewPagerFragment.isVisible) {
         val transaction2 = supportFragmentManager.beginTransaction()
-        transaction2.replace(R.id.contents, detailImageViewPagerFragment, "TAG_DETAIL")
+        transaction2.replace(R.id.contents, detailImageViewPagerFragment, "TAG_VIEWPAGER")
         transaction2.commit()
 
         binding.root.transitionToEnd()
+      }
+
+      position?.let {
+        viewModel.onPageSelected(it)
       }
     }
   }
@@ -93,6 +86,5 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun detailImageFragmentVisibility() =
-    supportFragmentManager.findFragmentByTag("TAG_DETAIL")?.isVisible ?: false
-
+    supportFragmentManager.findFragmentByTag("TAG_VIEWPAGER") != null
 }

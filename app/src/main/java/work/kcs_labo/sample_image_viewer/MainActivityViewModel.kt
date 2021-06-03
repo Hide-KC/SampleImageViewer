@@ -1,9 +1,7 @@
 package work.kcs_labo.sample_image_viewer
 
 import android.view.MotionEvent
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.*
 
 class MainActivityViewModel : ViewModel() {
 
@@ -34,16 +32,21 @@ class MainActivityViewModel : ViewModel() {
   private val _onFlingLiveEvent = singleLiveEvent<TurnPage>()
   val onFlingLiveEvent: LiveData<TurnPage> = _onFlingLiveEvent
 
-  var detailImageVisible = false
+  private val _onPageSelectedLiveEvent = singleLiveEvent<Int>()
 
   fun getCount() = itemIdListLiveData.value?.size ?: 0
 
   fun getItem(position: Int) = itemIdListLiveData.value?.get(position)
 
-  fun getCurrentItem() = _onShowDetailLiveEvent.value ?: 0
+  fun getCurrentItem() = _onPageSelectedLiveEvent.value ?: 0
 
   fun onBackPressed() {
     _onBackPressedLiveEvent.value = Unit
+  }
+
+  fun onPageSelected(position: Int) {
+    println("onPageSelected position = $position")
+    _onPageSelectedLiveEvent.value = position
   }
 
   fun onShowDetail(position: Int) {

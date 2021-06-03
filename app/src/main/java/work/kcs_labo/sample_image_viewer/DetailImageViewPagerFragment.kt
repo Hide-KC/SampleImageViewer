@@ -1,13 +1,13 @@
 package work.kcs_labo.sample_image_viewer
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.viewpager2.widget.ViewPager2
+import by.kirich1409.viewbindingdelegate.viewBinding
 import work.kcs_labo.sample_image_viewer.databinding.DetailImageViewPagerFragmentBinding
 import kotlin.math.max
 import kotlin.math.min
@@ -17,61 +17,37 @@ import kotlin.math.min
  * ProjectName SampleImageViewer
  */
 
-class DetailImageViewPagerFragment : Fragment() {
+class DetailImageViewPagerFragment : Fragment(R.layout.detail_image_view_pager_fragment) {
 
   private val viewModel: MainActivityViewModel by activityViewModels()
 
-  private lateinit var binding: DetailImageViewPagerFragmentBinding
+  private val binding by viewBinding(DetailImageViewPagerFragmentBinding::bind)
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    requireActivity().onBackPressedDispatcher.addCallback {
-      viewModel.onBackPressed()
+  private val callback = object : ViewPager2.OnPageChangeCallback() {
+    override fun onPageSelected(position: Int) {
+      super.onPageSelected(position)
+      viewModel.onPageSelected(position)
+
+      binding.viewPager.adapter?.let {
+        childFragmentManager.findFragmentByTag("f$position")
+      }?.let { fragment ->
+        if (fragment is OnInitFieldListener) {
+          fragment.onInitField()
+        }
+      }
+
     }
   }
 
-  override fun onSaveInstanceState(outState: Bundle) {
-    super.onSaveInstanceState(outState)
-    outState.putInt("position", binding.viewPager.currentItem)
-  }
+  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
 
-  override fun onCreateView(
-    inflater: LayoutInflater,
-    container: ViewGroup?,
-    savedInstanceState: Bundle?
-  ): View {
-    binding = DetailImageViewPagerFragmentBinding.inflate(inflater, container, false)
-
-    binding.viewPager.adapter = DetailImageAdapter(requireActivity(), viewModel)
-
-    binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-      override fun onPageSelected(position: Int) {
-        super.onPageSelected(position)
-        val savedPosition = savedInstanceState?.getInt("position") ?: -1
-        binding.viewPager.adapter?.let { adapter ->
-          if (savedPosition != -1) {
-            requireActivity().supportFragmentManager.findFragmentByTag("f$savedPosition")
-          } else {
-            requireActivity().supportFragmentManager
-              .findFragmentByTag("f${adapter.getItemId(position)}")
-          }?.let { fragment ->
-            if (fragment is DetailImageFragment) {
-              fragment.resetScale()
-            }
-          }
-        }
-      }
-    })
-
-    val savedPosition = savedInstanceState?.getInt("position") ?: -1
-
-    if (savedPosition == -1) {
-      val initPosition = arguments?.getInt("position") ?: 0
-      binding.viewPager.setCurrentItem(initPosition, false)
-    } else {
-      binding.viewPager.post {
-        binding.viewPager.currentItem = savedPosition
-      }
+    binding.viewPager.also {
+      it.adapter = DetailImageAdapter(this, viewModel)
+      it.offscreenPageLimit = 1
+      it.isUserInputEnabled = false
+      it.setCurrentItem(viewModel.getCurrentItem(), false)
+      it.registerOnPageChangeCallback(callback)
     }
 
     viewModel.onFlingLiveEvent.observeSingle(viewLifecycleOwner)
@@ -93,9 +69,23 @@ class DetailImageViewPagerFragment : Fragment() {
       }
     }
 
-    binding.viewPager.isUserInputEnabled = false
+    requireActivity().onBackPressedDispatcher.addCallback {
+      viewModel.onBackPressed()
+    }
+  }
 
-    return binding.root
+  override fun onResume() {
+    super.onResume()
+    val currentPosition = viewModel.getCurrentItem()
+    binding.root.post {
+      binding.viewPager.setCurrentItem(currentPosition, false)
+    }
+  }
+
+  override fun onStop() {
+    super.onStop()
+    println("onStop")
+    binding.viewPager.unregisterOnPageChangeCallback(callback)
   }
 
   companion object {

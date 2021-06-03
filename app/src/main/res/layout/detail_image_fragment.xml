@@ -7,10 +7,11 @@
 
   </data>
 
-  <androidx.constraintlayout.widget.ConstraintLayout
+  <androidx.constraintlayout.motion.widget.MotionLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:background="@color/black"
+    app:layoutDescription="@xml/detail_image_fragment_scene">
 
     <ImageView
       android:id="@+id/image_view"
@@ -25,5 +26,50 @@
       app:layout_constraintTop_toTopOf="parent"
       tools:ignore="ContentDescription" />
 
-  </androidx.constraintlayout.widget.ConstraintLayout>
+    <FrameLayout
+      android:id="@+id/header_layout"
+      android:layout_width="0dp"
+      android:layout_height="?attr/actionBarSize"
+      android:background="#FFFFFFFF"
+      android:alpha="0.3"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent">
+
+      <TextView
+        android:id="@+id/dummy_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginHorizontal="12dp"
+        android:background="@android:color/transparent"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        tools:text="ほげほげ" />
+
+    </FrameLayout>
+
+    <FrameLayout
+      android:id="@+id/bottom_layout"
+      android:layout_width="0dp"
+      android:layout_height="128dp"
+      android:background="#FFFFFFFF"
+      android:alpha="0.3"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent">
+
+      <TextView
+        android:id="@+id/dummy_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginHorizontal="12dp"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        tools:text="ふがふが" />
+
+    </FrameLayout>
+
+  </androidx.constraintlayout.motion.widget.MotionLayout>
 </layout>
